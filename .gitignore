@@ -1,0 +1,35 @@
+# Python / Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Duplicate working copies
+NMO_projekt.ipynb
+data/raw/
+data/synthetic/
+reports/compiled/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# Duplicated binary exports
+charts/**/*.pdf
+tables/**/*.xlsx

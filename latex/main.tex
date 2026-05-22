@@ -1,0 +1,190 @@
+
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\geometry{margin=2.5cm}
+\graphicspath{{figures/}}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+
+\title{Optymalizacja portfelowa Markowitza z ograniczeniem kardynalności\\z wykorzystaniem metod metaheurystycznych}
+\author{Raport końcowy projektu}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Raport przedstawia rozwiązanie problemu optymalizacji portfelowej Markowitza z ograniczeniem kardynalności. Celem obliczeniowym jest minimalizacja wariancji portfela przy zadanej minimalnej oczekiwanej stopie zwrotu, braku krótkiej sprzedaży oraz ograniczeniu liczby aktywów w portfelu. Zastosowano trzy metaheurystyki: Simulated Annealing, Genetic Algorithm oraz Particle Swarm Optimization. Badanie obejmuje opis procesu generowania danych, formalizację problemu, konstrukcję eksperymentu, walidację wyników, analizę dywersyfikacji i interpretację wyników dla konkretnego zbioru danych syntetycznych.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Wstęp}
+Optymalizacja portfelowa jest jednym z klasycznych zagadnień finansów ilościowych. Model Markowitza pozwala formalnie opisać kompromis między oczekiwaną stopą zwrotu a ryzykiem portfela, mierzonym wariancją. W praktyce inwestorzy często nakładają dodatkowe ograniczenia, które nie występują w podstawowej postaci modelu. Jednym z nich jest ograniczenie kardynalności, czyli ograniczenie liczby aktywów o niezerowej wadze.
+
+Dodanie ograniczenia kardynalności zmienia strukturę problemu. Klasyczny model bez tego warunku może być rozwiązany metodami programowania kwadratowego. Po dodaniu limitu liczby aktywów pojawia się komponent dyskretny: trzeba jednocześnie wskazać aktywa wchodzące do portfela i dobrać ich wagi. To uzasadnia wykorzystanie metaheurystyk.
+
+\section{Cel projektu}
+Celem projektu jest przygotowanie kompletnego procesu obliczeniowego, który wczytuje lub generuje dane, szacuje oczekiwane stopy zwrotu i macierz kowariancji, rozwiązuje problem minimalizacji wariancji portfela z ograniczeniem kardynalności, porównuje algorytmy SA, GA i PSO oraz zapisuje wyniki w postaci tabel, wykresów i raportu.
+
+\section{Klasyczny model Markowitza}
+Niech $n$ oznacza liczbę aktywów, $w \in \mathbb{R}^n$ wektor wag, $\mu \in \mathbb{R}^n$ wektor oczekiwanych stóp zwrotu, a $\Sigma \in \mathbb{R}^{n 	imes n}$ macierz kowariancji. Oczekiwana stopa zwrotu portfela wynosi
+\[
+    \mu_p = \mu^	op w,
+\]
+a wariancja portfela wynosi
+\[
+    \sigma_p^2 = w^	op \Sigma w.
+\]
+W klasycznej wersji zadanie minimalizacji wariancji przy zadanym zwrocie ma postać wypukłego problemu programowania kwadratowego, jeżeli macierz kowariancji jest dodatnio półokreślona, a ograniczenia mają charakter liniowy.
+
+\section{Problem z ograniczeniem kardynalności}
+W projekcie rozważany jest problem:
+\[
+\min_w\; w^	op \Sigma w
+\]
+przy ograniczeniach:
+\[
+\mu^	op w \ge r_0, \qquad \sum_{i=1}^{n} w_i = 1, \qquad w_i \ge 0, \qquad \|w\|_0 \le A.
+\]
+Symbol $\|w\|_0$ oznacza liczbę niezerowych elementów wektora wag. Parametr $A$ określa maksymalną liczbę aktywów w portfelu. Warunek ten poprawia praktyczną interpretowalność portfela, ale powoduje utratę wypukłości zbioru dopuszczalnego.
+
+\section{Proces generujący dane}
+Dane w projekcie mają charakter syntetyczny. Ich celem nie jest odwzorowanie konkretnego rynku, lecz utworzenie kontrolowanego środowiska eksperymentalnego, w którym występują aktywa o różnych profilach ryzyka. Proces generujący dane można interpretować jako uproszczony wieloczynnikowy model stóp zwrotu:
+\[
+    r_{i,t} = \mu_i + \beta_i f_t + \varepsilon_{i,t},
+\]
+gdzie $r_{i,t}$ jest stopą zwrotu aktywa $i$ w chwili $t$, $\mu_i$ oznacza dryf aktywa, $f_t$ jest wspólnym czynnikiem rynkowym, $\beta_i$ mierzy wrażliwość aktywa na czynnik rynkowy, a $\varepsilon_{i,t}$ jest składnikiem specyficznym dla aktywa.
+
+W typowym rozszerzeniu finansowym zmienność składnika losowego może być modelowana procesem GARCH(1,1):
+\[
+    \varepsilon_t = \sigma_t z_t, \qquad z_t \sim \mathcal{N}(0,1),
+\]
+\[
+    \sigma_t^2 = \omega + \alpha \varepsilon_{t-1}^2 + \beta \sigma_{t-1}^2,
+\]
+przy założeniach $\omega>0$, $\alpha\ge 0$, $\beta\ge 0$ oraz zwykle $\alpha+\beta<1$. W takim modelu duże zaburzenia zwiększają przyszłą wariancję, co odzwierciedla skupianie zmienności obserwowane w szeregach finansowych. W przygotowanym zbiorze syntetycznym wykorzystano praktyczny odpowiednik tej idei: aktywa mają zróżnicowane poziomy zmienności i są dzielone na klasy konserwatywne, zrównoważone oraz agresywne według empirycznego odchylenia standardowego.
+
+Podział na klasy aktywów ma znaczenie interpretacyjne. Aktywa konserwatywne mają najniższą zmienność, agresywne najwyższą, a zrównoważone znajdują się między nimi. Dzięki temu można sprawdzić, czy minimalizacja wariancji prowadzi przede wszystkim do wyboru aktywów defensywnych, czy też wymusza domieszkę aktywów bardziej zmiennych w celu spełnienia ograniczenia minimalnego zwrotu.
+
+\section{Reprezentacja rozwiązania i obsługa ograniczeń}
+Każdy kandydacki portfel jest reprezentowany jako wektor wag $w$. Po wygenerowaniu rozwiązania stosowana jest procedura naprawy: wartości ujemne są obcinane do zera, pozostawiane jest co najwyżej $A$ największych wag, a następnie cały wektor jest normalizowany do sumy równej jeden. Jeżeli portfel nie spełnia warunku $\mu^	op w \ge r_0$, zwiększany jest udział aktywa o najwyższej oczekiwanej stopie zwrotu.
+
+W kontekście PSO stwierdzenie, że metoda jest naturalnie dostosowana do ciągłej optymalizacji wag, oznacza, że cząstka w PSO przechowuje pozycję jako wektor liczb rzeczywistych. Taki wektor dobrze opisuje same wagi portfela. Nie opisuje jednak bezpośrednio dyskretnego warunku $\|w\|_0 \le A$. Dlatego po każdej aktualizacji pozycji cząstki trzeba zastosować procedurę naprawy, która usuwa nadmiarowe aktywa i ponownie normalizuje wagi.
+
+\section{Algorytmy i hiperparametry}
+\subsection{Simulated Annealing}
+W naszym przykładzie SA rozpoczyna od losowego portfela spełniającego ograniczenia. W każdej iteracji generowane jest lokalne zaburzenie wag, po czym portfel jest naprawiany. Jeżeli nowy portfel ma niższą wariancję, zostaje zaakceptowany. Jeżeli jest gorszy, może zostać przyjęty z prawdopodobieństwem zależnym od temperatury. W eksperymencie wykorzystano losowe próbkowanie kandydatów odpowiadające idei lokalnego przeszukiwania; w notebooku bazowym parametry SA obejmują $450$ iteracji, temperaturę początkową $T_0=1.0$, współczynnik chłodzenia $\alpha=0.995$ oraz skalę kroku $0.12$.
+
+\subsection{Genetic Algorithm}
+GA operuje na populacji portfeli. Osobnikiem jest wektor wag po procedurze naprawy. W projekcie zastosowano populację $45$ osobników, $80$ generacji, selekcję turniejową, krzyżowanie jednorodne, prawdopodobieństwo mutacji $0.12$ oraz elitaryzm na poziomie około $8\%$ populacji. Wygenerowane potomstwo jest zawsze naprawiane, aby spełniało ograniczenia portfelowe.
+
+\subsection{Particle Swarm Optimization}
+PSO wykorzystuje rój cząstek, z których każda przechowuje wektor wag i wektor prędkości. W notebooku bazowym zastosowano $45$ cząstek i $90$ iteracji. Parametr bezwładności wynosi $0.72$, parametr poznawczy $1.45$, a parametr społeczny $1.45$. Po aktualizacji pozycji cząstki wykonywana jest naprawa ograniczeń, ponieważ standardowy ruch PSO może wygenerować zbyt wiele niezerowych wag albo wagi niesumujące się do jednego.
+
+\section{Projekt eksperymentu}
+Eksperyment przeprowadzono dla $A \in \{2,3,5,10,15\}$. Dla każdej wartości $A$ i każdego algorytmu wykonano kilka powtórzeń. Podstawowym kryterium jakości jest najniższa wariancja portfela przy spełnieniu ograniczeń. Dodatkowo analizowano czas działania, stabilność wyników i dywersyfikację.
+
+\section{Metryki oceny}
+Wariancja i zmienność nie są niezależnymi informacjami, ponieważ zmienność jest pierwiastkiem z wariancji:
+\[
+    \sigma_p = \sqrt{\sigma_p^2}.
+\]
+Wariancja jest bezpośrednią funkcją celu modelu Markowitza, natomiast zmienność jest raportowana pomocniczo, ponieważ jest bardziej intuicyjna interpretacyjnie i ma tę samą jednostkę co stopa zwrotu. Nie należy traktować tych metryk jako dwóch niezależnych kryteriów.
+
+Indeks HHI, czyli Herfindahl--Hirschman Index, mierzy koncentrację wag portfela:
+\[
+    HHI = \sum_{i=1}^{n} w_i^2.
+\]
+Im wyższy HHI, tym bardziej skoncentrowany portfel. Efektywna liczba aktywów jest odwrotnością tego indeksu:
+\[
+    N_{eff} = \frac{1}{HHI}.
+\]
+Jeżeli portfel ma równe wagi w $k$ aktywach, wtedy $N_{eff}=k$.
+
+\section{Wyniki eksperymentu}
+Tabela zbiorcza została rozbita na trzy części, aby oddzielić jakość rozwiązania, stabilność obliczeń i dywersyfikację portfeli.
+
+\begin{table}[H]
+\centering
+\caption{Jakość rozwiązań: wariancja, zmienność i zwrot}
+\resizebox{\textwidth}{!}{\input{tables/algorithm_performance.tex}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Stabilność i czas działania algorytmów}
+\resizebox{\textwidth}{!}{\input{tables/algorithm_stability_runtime.tex}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Dywersyfikacja i udział klas aktywów}
+\resizebox{\textwidth}{!}{\input{tables/diversification_asset_classes.tex}}
+\end{table}
+
+Najniższą pojedynczą wariancję w przeprowadzonym eksperymencie uzyskał algorytm PSO dla $A=10$. Dzienna wariancja tego portfela wynosi $0{,}0000314872$, roczna oczekiwana stopa zwrotu $5{,}8147\%$, roczna zmienność $8{,}9077\%$, efektywna liczba aktywów $6{,}26$, HHI $0{,}1597$, a największa pojedyncza waga $20{,}95\%$. Rozwiązanie spełnia ograniczenia zadania.
+
+Wyniki pokazują również, że zwiększenie $A$ nie musi monotonicznie poprawiać rezultatu każdego pojedynczego uruchomienia. Większe $A$ rozszerza zbiór dopuszczalnych portfeli, ale metaheurystyki są metodami przybliżonymi i stochastycznymi. Dla małych $A$ portfele są prostsze i bardziej skoncentrowane, natomiast większe $A$ pozwala budować portfele bardziej zdywersyfikowane.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{min_variance_algorithms.png}
+\caption{Minimalna wariancja według algorytmu i ograniczenia kardynalności}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{runtime_algorithms.png}
+\caption{Porównanie czasu działania algorytmów}
+\end{figure}
+
+\section{Dywersyfikacja i skład portfela}
+Dywersyfikacja jest ważna, ponieważ portfel o niskiej wariancji może być jednocześnie silnie skoncentrowany. W naszym eksperymencie portfele dla $A=2$ mają efektywną liczbę aktywów bliską dwóm, co jest naturalną konsekwencją bardzo silnego ograniczenia kardynalności. Dla wyższych wartości $A$ efektywna liczba aktywów rośnie, ale nie zawsze osiąga sam limit $A$, ponieważ minimalizacja wariancji może preferować większą wagę w niewielkiej liczbie stabilnych aktywów.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{diversification_vs_variance.png}
+\caption{Relacja dywersyfikacji i osiągniętej wariancji}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{best_portfolio_weights.png}
+\caption{Wagi najlepszego portfela według minimalnej wariancji}
+\end{figure}
+
+\section{Walidacja wyników}
+Dla każdego portfela sprawdzono sumę wag, nieujemność, ograniczenie kardynalności, minimalny oczekiwany zwrot oraz poprawność macierzy kowariancji. Walidacja jest konieczna, ponieważ sama niska wartość funkcji celu nie wystarcza, jeżeli portfel narusza ograniczenia formalne.
+
+\section{Uwagi krytyczne i ograniczenia badania}
+Wyniki należy interpretować ostrożnie. Dane mają charakter syntetyczny, więc nie są rekomendacją inwestycyjną. Metaheurystyki zależą od ziarna losowego, liczby kandydatów i hiperparametrów. Procedura naprawy ograniczeń wpływa na przeszukiwaną przestrzeń rozwiązań. Minimalizacja wariancji nie opisuje wszystkich aspektów ryzyka, szczególnie przy rozkładach skośnych lub z grubymi ogonami.
+
+\section{Wnioski końcowe}
+W przeprowadzonym przykładzie ograniczenie kardynalności wyraźnie wpływa na strukturę portfela. Dla bardzo małego $A$ portfel jest prosty i skoncentrowany, natomiast wzrost limitu pozwala zwiększyć dywersyfikację. Najlepszy wynik wariancyjny uzyskano dla algorytmu GA przy $A=5$, ale jednocześnie należy porównać ten wynik z czasem obliczeń i poziomem dywersyfikacji.
+
+Z perspektywy projektu najważniejszy wniosek jest następujący: po dodaniu ograniczenia kardynalności klasyczny problem Markowitza przestaje być prostym zadaniem wypukłym, a metaheurystyki stają się uzasadnionym narzędziem poszukiwania dobrych portfeli. Ocena algorytmu nie powinna opierać się wyłącznie na pojedynczej wartości wariancji, lecz także na stabilności wyników, czasie działania oraz dywersyfikacji portfela.
+
+\appendix
+\section{Aneks techniczny}
+Finalny notebook znajduje się w \texttt{notebooks/final\_notebook.ipynb}. Wykresy zapisano w \texttt{charts/}, tabele w \texttt{tables/}, a konfigurację eksperymentu w \texttt{logs/experiment\_config.json}. Wszystkie ścieżki są względne względem katalogu projektu.
+
+\begin{thebibliography}{9}
+\bibitem{markowitz1952} H. Markowitz, Portfolio Selection, \textit{The Journal of Finance}, 7(1), 77--91, 1952.
+\bibitem{kirkpatrick1983} S. Kirkpatrick, C. D. Gelatt, M. P. Vecchi, Optimization by Simulated Annealing, \textit{Science}, 220(4598), 671--680, 1983.
+\bibitem{goldberg1989} D. E. Goldberg, \textit{Genetic Algorithms in Search, Optimization and Machine Learning}, Addison-Wesley, 1989.
+\bibitem{kennedy1995} J. Kennedy, R. Eberhart, Particle Swarm Optimization, \textit{Proceedings of ICNN'95}, 1995.
+\end{thebibliography}
+\end{document}
