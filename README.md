@@ -66,7 +66,7 @@ Projekt porownuje algorytmy pod wzgledem:
 - efektywnej liczby aktywow i koncentracji portfela,
 - spelnienia ograniczen formalnych.
 
-W przeprowadzonym eksperymencie najlepszy wynik wariancyjny uzyskano dla algorytmu GA przy `A = 5`. Interpretacja wyniku powinna jednak uwzgledniac rowniez czas obliczen, stabilnosc oraz poziom dywersyfikacji.
+W przeprowadzonym eksperymencie najlepszy wynik wariancyjny uzyskano dla algorytmu PSO przy `A = 10`. Interpretacja wyniku powinna jednak uwzgledniac rowniez czas obliczen, stabilnosc oraz poziom dywersyfikacji.
 
 ## Uruchomienie
 
